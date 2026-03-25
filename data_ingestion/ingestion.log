@@ -1,0 +1,7 @@
+INFO | 2026-03-25 10:16:16,008 | file_cache is only supported with oauth2client<4.0.0
+INFO | 2026-03-25 10:16:16,012 | Processing term: telecom complaints india
+INFO | 2026-03-25 10:16:17,034 | Processing term: mobile signal problem
+INFO | 2026-03-25 10:16:19,410 | Processing term: network outage india
+INFO | 2026-03-25 10:16:28,769 | Processing term: broadband issues
+INFO | 2026-03-25 10:16:29,304 | Processing term: telecom customer problems
+INFO | 2026-03-25 10:16:33,321 | Saved 500 records

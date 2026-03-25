@@ -1007,3 +1007,5 @@
 2026-03-20 12:01:41,244 | INFO | Stored 1000 records at offset 1003000
 2026-03-20 12:01:51,161 | INFO | Stored 1000 records at offset 1004000
 2026-03-20 12:01:55,136 | INFO | Stored 1000 records at offset 1005000
+2026-03-25 09:41:07,938 | INFO | Ingestion started at offset 1006000
+2026-03-25 09:41:12,407 | INFO | Stored 1000 records at offset 1006000
