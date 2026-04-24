@@ -1,20 +1,14 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_timestamp, trim, upper
+from pyspark.sql.types import DoubleType
 import os
 
-# 🔥 FIX: Ensure PySpark picks correct Java (important for your Docker setup)
 os.environ["JAVA_HOME"] = "/usr/lib/jvm/default-java"
 os.environ["PATH"] = os.environ["JAVA_HOME"] + "/bin:" + os.environ["PATH"]
-
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import (
-    col, to_timestamp, trim, upper,
-    year, month, current_timestamp
-)
-from pyspark.sql.types import DoubleType
 
 # ---------------- SPARK ----------------
 spark = SparkSession.builder \
     .appName("telecom_silver_layer") \
-    .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
     .getOrCreate()
 
 # ---------------- PATHS (Docker Compatible) ----------------
@@ -28,21 +22,24 @@ df = spark.read \
     .option("multiline", "true") \
     .json(f"{BRONZE_PATH}*.json")
 
-# ---------------- ADD INGESTION TIME ----------------
-df = df.withColumn("ingestion_time", current_timestamp())
+print("=== Bronze Schema ===")
+df.printSchema()
 
 # ---------------- CLEANING ----------------
-df = df.filter(
+df_clean = df.filter(
     col("id").isNotNull() &
     col("issue_type").isNotNull() &
     col("state").isNotNull()
 )
 
-df = df.dropDuplicates(["id"])
-df = df.replace("None", None)
+# Remove duplicates
+df_clean = df_clean.dropDuplicates(["id"])
+
+# Replace string "None" with null
+df_clean = df_clean.replace("None", None)
 
 # ---------------- TRANSFORM ----------------
-df = df \
+df_transformed = df_clean \
     .withColumn("complaint_id", col("id")) \
     .withColumn("created_ts", to_timestamp(col("ticket_created"))) \
     .withColumn("issue_date", to_timestamp(col("date_created"))) \
@@ -55,13 +52,8 @@ df = df \
     .withColumn("latitude", col("location_1.latitude").cast(DoubleType())) \
     .withColumn("longitude", col("location_1.longitude").cast(DoubleType()))
 
-# ---------------- ADD PARTITIONS ----------------
-df = df \
-    .withColumn("year", year("created_ts")) \
-    .withColumn("month", month("created_ts"))
-
 # ---------------- SELECT FINAL ----------------
-df_silver = df.select(
+df_silver = df_transformed.select(
     "complaint_id",
     "created_ts",
     "issue_date",
@@ -72,20 +64,16 @@ df_silver = df.select(
     "state",
     "zip",
     "latitude",
-    "longitude",
-    "year",
-    "month",
-    "ingestion_time"
+    "longitude"
 )
 
+print("=== Silver Data Preview ===")
+df_silver.show(10, truncate=False)
+
 # ---------------- WRITE ----------------
-
-# 🔥 Reduce small files
-df_silver = df_silver.repartition(4)
-
 df_silver.write \
     .mode("overwrite") \
-    .partitionBy("year", "month") \
+    .partitionBy("state") \
     .parquet(SILVER_PATH)
 
-print("✅ Silver layer created successfully")
+print("[SUCCESS] Silver layer created successfully")

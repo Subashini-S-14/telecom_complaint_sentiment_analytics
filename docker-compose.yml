@@ -4,38 +4,18 @@ services:
   spark_engine:
     build: .
     container_name: telecom_spark_engine
-    volumes:
-      - .:/workspace
-    # Keeps the container alive so you can 'docker exec' into it from Airflow
-    command: tail -f /dev/null 
 
-  airflow:
-    image: apache/airflow:2.9.3
-    container_name: telecom_airflow
-    # Run as root initially to install Docker and fix permissions
-    user: root 
-    ports:
-      - "8080:8080"
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      # Tells the 'standalone' command what admin credentials to create
-      - _AIRFLOW_WWW_USER_USERNAME=admin
-      - _AIRFLOW_WWW_USER_PASSWORD=admin
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      # Mount your project folder into container
       - .:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      bash -c "
-      echo '1. Installing Docker CLI...' &&
-      apt-get update -qq && apt-get install -y docker.io -qq &&
-      
-      echo '2. Fixing permissions...' &&
-      chmod 666 /var/run/docker.sock &&
-      chown -R airflow: /opt/airflow &&
-      chown -R airflow: /workspace &&
-      
-      echo '3. Launching Airflow...' &&
-      su -p airflow -c 'airflow standalone'
-      "
+
+    working_dir: /workspace
+
+    tty: true
+    stdin_open: true
+
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - PYSPARK_PYTHON=python3
+
+    command: tail -f /dev/null
